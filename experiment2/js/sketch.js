@@ -1,6 +1,7 @@
 // Globals
 let canvasContainer;
 let cameraRotation = 0;
+let rotateCamera;
 
 let rows = 50; // Number of rows in the grid
 let cols = 50; // Number of columns in the grid
@@ -8,6 +9,12 @@ let terrain = []; // 2D array to store vertices
 
 let mountainScale = 4;
 let sunSize = 400
+
+// Calculate position of the fog circle
+let fogX = 0;
+let fogY;
+let fogRadius = 1000; // Radius of the fog circle
+let fogOpacity = 50; // Opacity of the fog color
 
 function resizeScreen() {
   console.log("Resizing...");
@@ -37,16 +44,28 @@ function setup() {
 
   // Call function to generate terrain
   generateTerrain();
+  rotateCamera = HALF_PI;
+  fogY = -height - 50;
 }
 
 function draw() {
   background(0); // Set background color to black
 
-  // Landscape view camera settings
-  let camX = 0; // Camera x position
+  // Update camera rotation
+  cameraRotation += 0.01; // Adjust the rotation speed as needed
+
+  // Landscape view camera settings with slight rotation and 90 degrees clockwise rotation
+  let camX = sin(cameraRotation) * 200; // Camera x position (with sway)
   let camY = height; // Camera y position (above the grid floor)
   let camZ = (height / 2.0) / tan(PI / 2); // Camera distance
-  camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0); // Set camera position and orientation
+  let lookX = 0; // Point the camera at the origin
+  let lookY = 0;
+  let lookZ = 0;
+  camera(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0); // Set camera position and orientation
+  rotateY(rotateCamera); // Rotate the camera 90 degrees clockwise around the y-axis
+
+  // Your drawing code here
+  // Your drawing code here
 
   // Draw sun
   translate(0, -1000, -200); // Position the sun
@@ -76,24 +95,27 @@ function draw() {
   drawHorizonGradient();
 
   // Add white fog near the horizon
+  fogX += 50; // Adjust the speed as needed
+  fogY -= 1;
+
+  // Ensure fog wraps around when it reaches the right edge of the canvas
+  if (fogX > width + fogRadius) {
+    fogX = -fogRadius;
+    fogY = -height - 50
+  }
+
   drawHorizonFog();
   
 }
 
 function drawHorizonFog() {
-  let fogRadius = 1000; // Radius of the fog circle
-  let fogOpacity = 50; // Opacity of the fog color
-
-  // Calculate position of the fog circle
-  let fogX = 10;
-  let fogY = -height;
   
   // Set fill color with opacity for fog
   fill(255, fogOpacity);
   noStroke();
   
   // Draw fog circle
-  ellipse(fogX, fogY, fogRadius * 2, fogRadius * 2);
+  ellipse(fogX, fogY, fogRadius * 10, fogRadius * 2);
 
 }
 
