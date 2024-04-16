@@ -1,79 +1,129 @@
-// sketch.js - purpose and description here
-// Author: Your Name
-// Date:
-
-// Here is how you might set up an OOP p5.js project
-// Note that p5.js looks for a file called sketch.js
-
-// Constants - User-servicable parts
-// In a longer project I like to put these in a separate file
-const VALUE1 = 1;
-const VALUE2 = 2;
-
 // Globals
-let myInstance;
 let canvasContainer;
-var centerHorz, centerVert;
+let cameraRotation = 0;
 
-class MyClass {
-    constructor(param1, param2) {
-        this.property1 = param1;
-        this.property2 = param2;
-    }
+let rows = 50; // Number of rows in the grid
+let cols = 50; // Number of columns in the grid
+let terrain = []; // 2D array to store vertices
 
-    myMethod() {
-        // code to run when method is called
-    }
-}
+let mountainScale = 4;
+let sunSize = 400
 
 function resizeScreen() {
-  centerHorz = canvasContainer.width() / 2; // Adjusted for drawing logic
-  centerVert = canvasContainer.height() / 2; // Adjusted for drawing logic
   console.log("Resizing...");
   resizeCanvas(canvasContainer.width(), canvasContainer.height());
-  // redrawCanvas(); // Redraw everything based on new size
 }
 
 // setup() function is called once when the program starts
 function setup() {
   // place our canvas, making it fit our container
   canvasContainer = $("#canvas-container");
-  let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
+  let canvas = createCanvas(canvasContainer.width(), canvasContainer.height(), WEBGL); // Create a 3D canvas
   canvas.parent("canvas-container");
   // resize canvas is the page is resized
-
-  // create an instance of the class
-  myInstance = new MyClass("VALUE1", "VALUE2");
 
   $(window).resize(function() {
     resizeScreen();
   });
   resizeScreen();
+
+  // Define camera parameters
+  let fov = PI / 3; // Field of view
+  let cameraZ = (height / 2.0) / tan(fov / 2.0); // Camera distance
+  perspective(fov, width / height, cameraZ / 10.0, cameraZ * 10.0); // Set perspective
+
+  // Optional: Add some ambient light
+  ambientLight(100);
+
+  // Call function to generate terrain
+  generateTerrain();
 }
 
-// draw() function is called repeatedly, it's the main animation loop
 function draw() {
-  background(220);    
-  // call a method on the instance
-  myInstance.myMethod();
+  background(0); // Set background color to black
 
-  // Set up rotation for the rectangle
-  push(); // Save the current drawing context
-  translate(centerHorz, centerVert); // Move the origin to the rectangle's center
-  rotate(frameCount / 100.0); // Rotate by frameCount to animate the rotation
-  fill(234, 31, 81);
-  noStroke();
-  rect(-125, -125, 250, 250); // Draw the rectangle centered on the new origin
-  pop(); // Restore the original drawing context
+  // Landscape view camera settings
+  let camX = 0; // Camera x position
+  let camY = height; // Camera y position (above the grid floor)
+  let camZ = (height / 2.0) / tan(PI / 2); // Camera distance
+  camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0); // Set camera position and orientation
 
-  // The text is not affected by the translate and rotate
-  fill(255);
-  textStyle(BOLD);
-  textSize(140);
-  text("p5*", centerHorz - 105, centerVert + 40);
+  // Draw sun
+  translate(0, -1000, -200); // Position the sun
+  fill(255, 0, 255); // Bright magenta fill color
+  noStroke(); // No stroke
+  sphere(sunSize, 40, 40);
+
+  // Draw terrain
+  translate(0, 950, 0); // Center the terrain
+  fill(0); // Black fill color
+  stroke(0, 139, 139); // Blue stroke color
+
+  for (let x = 0; x < cols - 1; x++) {
+    beginShape(TRIANGLE_STRIP); // Begin drawing a strip of triangles
+
+    for (let y = 0; y < rows; y++) {
+      let v1 = terrain[x][y];
+      let v2 = terrain[x + 1][y];
+      vertex(v1.x, v1.y, v1.z);
+      vertex(v2.x, v2.y, v2.z);
+    }
+
+    endShape(); // End the strip
+  }
+
+  // Draw gradient on the horizon
+  drawHorizonGradient();
+
+  // Add white fog near the horizon
+  drawHorizonFog();
+  
 }
 
-// mousePressed() function is called once after every time a mouse button is pressed
-function mousePressed() {
-    // code to run when mouse is pressed
+function drawHorizonFog() {
+  let fogRadius = 1000; // Radius of the fog circle
+  let fogOpacity = 50; // Opacity of the fog color
+
+  // Calculate position of the fog circle
+  let fogX = 10;
+  let fogY = -height;
+  
+  // Set fill color with opacity for fog
+  fill(255, fogOpacity);
+  noStroke();
+  
+  // Draw fog circle
+  ellipse(fogX, fogY, fogRadius * 2, fogRadius * 2);
+
+}
+
+function drawHorizonGradient() {
+  let horizonTop = -height * 2; // Top of the horizon rectangle
+  let horizonBottom = -height; // Bottom of the horizon rectangle
+  let gradientColorTop = color(255, 0, 255); // Bright magenta color
+  let gradientColorBottom = color(0); // Black color
+
+  // Draw gradient rectangle
+  for (let y = horizonTop; y <= horizonBottom; y++) {
+    let lerpingColor = lerpColor(gradientColorTop, gradientColorBottom, map(y, horizonTop, horizonBottom, 0, 1));
+    stroke(lerpingColor);
+    line(-width * 2, y, width * 2, y);
+  }
+}
+
+function generateTerrain() {
+  // Generate terrain vertices
+  for (let x = 0; x < cols; x++) {
+    terrain[x] = []; // Initialize inner array
+    for (let y = 0; y < rows; y++) {
+      // Calculate x, y coordinates based on grid spacing
+      let xpos = map(x, 0, cols - 1, -width, width);
+      let ypos = map(y, 0, rows - 1, -height, height);
+      // Set z coordinate based on distance from center
+      let xDistance = abs(x - cols / 2);
+      zpos = random(-xDistance, xDistance) * mountainScale;
+      // Store vertex in terrain array
+      terrain[x][y] = createVector(xpos, ypos, zpos);
+    }
+  }
 }
