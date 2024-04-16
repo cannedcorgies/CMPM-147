@@ -76,6 +76,7 @@ function draw() {
   // Draw terrain
   translate(0, 950, 0); // Center the terrain
   fill(0); // Black fill color
+  noFill();
   stroke(0, 139, 139); // Blue stroke color
 
   for (let x = 0; x < cols - 1; x++) {
