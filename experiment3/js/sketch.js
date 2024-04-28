@@ -1,79 +1,106 @@
-// sketch.js - purpose and description here
-// Author: Your Name
-// Date:
+/* exported preload, setup, draw, placeTile */
 
-// Here is how you might set up an OOP p5.js project
-// Note that p5.js looks for a file called sketch.js
+/* global generateGrid drawGrid */
 
-// Constants - User-servicable parts
-// In a longer project I like to put these in a separate file
-const VALUE1 = 1;
-const VALUE2 = 2;
+let seed = 0;
+let tilesetImage;
+let currentGrid = [];
+let numRows, numCols;
 
-// Globals
-let myInstance;
-let canvasContainer;
-var centerHorz, centerVert;
+let rippleX, rippleY; // Coordinates of the center of the ripple
+let rippleSize; // Size of the ripple
+let rippleTimer; // Timer to control the duration of the ripple
+let rippleDuration = 60; // Duration of the ripple in frames (adjust as needed)
+let rippleAlpha = 255; // Initial alpha value of the ripple
+let rippleSpeed = 4; // Speed at which the ripple expands
 
-class MyClass {
-    constructor(param1, param2) {
-        this.property1 = param1;
-        this.property2 = param2;
-    }
+// Define variables to store camera position and sway offsets
+let cameraX = 0;
+let cameraY = 0;
+let swayOffsetX = 0;
+let swayOffsetY = 0;
 
-    myMethod() {
-        // code to run when method is called
-    }
+// Function to update camera position with sway
+function updateCamera() {
+  // Add random offsets to camera position within a certain range
+  let maxSway = 5; // Maximum sway amount
+  swayOffsetX = random(-maxSway, maxSway);
+  swayOffsetY = random(-maxSway, maxSway);
+  
+  // Update camera position with sway offsets
+  cameraX += swayOffsetX;
+  cameraY += swayOffsetY;
 }
 
-function resizeScreen() {
-  centerHorz = canvasContainer.width() / 2; // Adjusted for drawing logic
-  centerVert = canvasContainer.height() / 2; // Adjusted for drawing logic
-  console.log("Resizing...");
-  resizeCanvas(canvasContainer.width(), canvasContainer.height());
-  // redrawCanvas(); // Redraw everything based on new size
+function preload() {
+  tilesetImage = loadImage(
+    "https://cdn.glitch.com/25101045-29e2-407a-894c-e0243cd8c7c6%2FtilesetP8.png?v=1611654020438"
+  );
 }
 
-// setup() function is called once when the program starts
+function reseed() {
+  seed = (seed | 0) + 1109;
+  randomSeed(seed);
+  noiseSeed(seed);
+  select("#seedReport").html("seed " + seed);
+  regenerateGrid();
+}
+
+function regenerateGrid() {
+  select("#asciiBox").value(gridToString(generateGrid(numCols, numRows)));
+  reparseGrid();
+}
+
+function reparseGrid() {
+  currentGrid = stringToGrid(select("#asciiBox").value());
+}
+
+function gridToString(grid) {
+  let rows = [];
+  for (let i = 0; i < grid.length; i++) {
+    rows.push(grid[i].join(""));
+  }
+  return rows.join("\n");
+}
+
+function stringToGrid(str) {
+  let grid = [];
+  let lines = str.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    let row = [];
+    let chars = lines[i].split("");
+    for (let j = 0; j < chars.length; j++) {
+      row.push(chars[j]);
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
 function setup() {
-  // place our canvas, making it fit our container
-  canvasContainer = $("#canvas-container");
-  let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
-  canvas.parent("canvas-container");
-  // resize canvas is the page is resized
+  numCols = select("#asciiBox").attribute("rows") | 0;
+  numRows = select("#asciiBox").attribute("cols") | 0;
 
-  // create an instance of the class
-  myInstance = new MyClass("VALUE1", "VALUE2");
+  createCanvas(16 * numCols, 16 * numRows).parent("canvasContainer");
+  select("canvas").elt.getContext("2d").imageSmoothingEnabled = false;
 
-  $(window).resize(function() {
-    resizeScreen();
-  });
-  resizeScreen();
+  select("#reseedButton").mousePressed(reseed);
+  select("#asciiBox").input(reparseGrid);
+
+  reseed();
 }
 
-// draw() function is called repeatedly, it's the main animation loop
+
 function draw() {
-  background(220);    
-  // call a method on the instance
-  myInstance.myMethod();
-
-  // Set up rotation for the rectangle
-  push(); // Save the current drawing context
-  translate(centerHorz, centerVert); // Move the origin to the rectangle's center
-  rotate(frameCount / 100.0); // Rotate by frameCount to animate the rotation
-  fill(234, 31, 81);
-  noStroke();
-  rect(-125, -125, 250, 250); // Draw the rectangle centered on the new origin
-  pop(); // Restore the original drawing context
-
-  // The text is not affected by the translate and rotate
-  fill(255);
-  textStyle(BOLD);
-  textSize(140);
-  text("p5*", centerHorz - 105, centerVert + 40);
+  
+  randomSeed(seed);
+  drawGrid(currentGrid);
+  
+  
+  
 }
 
-// mousePressed() function is called once after every time a mouse button is pressed
-function mousePressed() {
-    // code to run when mouse is pressed
+function placeTile(i, j, ti, tj) {
+  image(tilesetImage, 16 * j, 16 * i, 16, 16, 8 * ti, 8 * tj, 8, 8);
 }
+
